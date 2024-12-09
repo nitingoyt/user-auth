@@ -1,124 +1,9 @@
-import { Link } from "react-router-dom";
 import "./Register.css";
 import { useState } from "react";
-import { ToastContainer, toast } from "react-toastify";
+import { Link } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
-
-export function validateString(text) {
-  return {
-    newText: text,
-
-    capitalize: function () {
-      if (this.newText.length === 0) {
-        throw new Error("Text cannot be empty");
-      }
-      if (this.newText[0] !== this.newText[0].toUpperCase()) {
-        throw new Error("First letter should be capital");
-      }
-      return this;
-    },
-
-    allowNumbers: function (value) {
-      if (!value) {
-        this.newText.split("").forEach((element) => {
-          if (Number(element)) {
-            throw new Error("Number is Not allowed! in " + this.newText);
-          }
-        });
-      }
-      return this;
-    },
-
-    minLength: function (length) {
-      if (this.newText.length < length) {
-        throw new Error("Min length must be " + length);
-      }
-      return this;
-    },
-
-    maxLength: function (length) {
-      if (this.newText.length > length) {
-        throw new Error("Max length must be " + length);
-      }
-      return this;
-    },
-
-    allowSpecialChar: function (value) {
-      if (!value) {
-        this.newText.split("").forEach((element) => {
-          let ch = element.charCodeAt(0);
-          if (
-            !(ch >= 65 && ch <= 90) &&
-            !(ch >= 97 && ch <= 122) &&
-            !(ch >= 48 && ch <= 57)
-          ) {
-            throw new Error(
-              "Special cahracters not allowed in " + this.newText
-            );
-          }
-        });
-      }
-      return this;
-    },
-
-    emailValidation: function () {
-      if (!this.newText.includes("@") || !this.newText.includes(".")) {
-        throw new Error("Invalid email address");
-      }
-
-      const [local, domain] = this.newText.split("@");
-      console.log(local, domain);
-      if (!local || !domain || !domain.includes(".")) {
-        throw new Error("Email must contain a valid domain.");
-      }
-      return this;
-    },
-
-    // age allowed is more than 10 year old taking DOB from user
-    allowedAge: function () {
-      const birthDate = new Date(this.newText);
-      const today = new Date();
-      const age = today.getFullYear() - birthDate.getFullYear();
-      const month = today.getMonth() - birthDate.getMonth();
-
-      if (month < 0 || (month === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-      }
-
-      if (age < 18) {
-        throw new Error("You must be at least 18 years old.");
-      }
-
-      return this;
-    },
-
-    // alteast one special char , aleast one capital letter , 0-9 number
-    passwordValidation: function () {
-      const hasCapital = this.newText
-        .split("")
-        .some((char) => char >= "A" && char <= "Z");
-      const hasNumber = this.newText
-        .split("")
-        .some((char) => char >= "0" && char <= "9");
-      const hasSpecial = this.newText
-        .split("")
-        .some((char) => "!@#$%^&*()_+[]{}|;:',.<>?/`~".includes(char)); //copy pasted bro
-
-      if (!hasCapital) {
-        throw new Error("Password must contain at least one capital letter.");
-      }
-      if (!hasSpecial) {
-        throw new Error(
-          "Password must contain at least one special character."
-        );
-      }
-      if (!hasNumber) {
-        throw new Error("Password must contain at least one number.");
-      }
-      return this;
-    },
-  };
-}
+import { ToastContainer, toast } from "react-toastify";
+import { validateString } from "../validation/validation-fn";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -136,41 +21,69 @@ export default function Register() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-
-    let errorMessages = { ...errors };
-
-    try {
-      if (name === "firstName" || name === "lastName") {
-        validateString(value).capitalize().minLength(3).maxLength(20);
-      }
-
-      if (name === "email") {
-        validateString(value).emailValidation().minLength(8);
-      }
-
-      if (name === "password") {
-        validateString(value).passwordValidation().minLength(8).maxLength(20);
-      }
-      if (name === "dob") {
-        validateString(value).allowedAge();  // Validate age when dob changes
-      }
-
-      delete errorMessages[name]; //clear errors
-    } catch (error) {
-      errorMessages[name] = error.message;
-    }
-    setErrors(errorMessages);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const validationErrors = validateForm();
+    const validationErrors = {};
+
+    try {
+      validateString(formData.firstName)
+        .allowNumbers()
+        .capitalize()
+        .minLength(3)
+        .maxLength(20);
+    } catch (error) {
+      validationErrors.firstName = error.message;
+    }
+
+    try {
+      validateString(formData.lastName)
+        .allowNumbers()
+        .capitalize()
+        .minLength(3)
+        .maxLength(20);
+    } catch (error) {
+      validationErrors.lastName = error.message;
+    }
+
+    try {
+      validateString(formData.email).emailValidation().minLength(8);
+    } catch (error) {
+      validationErrors.email = error.message;
+    }
+
+    try {
+      validateString(formData.dob).allowedAge(); // Validate age when dob changes
+    } catch (error) {
+      validationErrors.dob = error.message;
+    }
+
+    try {
+      validateString(formData.password)
+        .passwordValidation()
+        .minLength(8)
+        .maxLength(20);
+    } catch (error) {
+      validationErrors.password = error.message;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      validationErrors.confirmPassword = "Passwords do not match.";
+    }
+
+    if (!formData.profilePicture) {
+      validationErrors.profilePicture = "Profile picture is required.";
+    }
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      toast.error("Please fix the highlighted errors.");
       return;
     }
 
+    // If no errors, submit the form
     toast.success("Form submitted successfully!");
 
     console.log("Form submitted successfully:", formData);
@@ -187,29 +100,12 @@ export default function Register() {
     setErrors({});
   };
 
-  const validateForm = () => {
-    const errors = {};
-
-    if (!formData.firstName) errors.firstName = "First name is required";
-    if (!formData.lastName) errors.lastName = "Last name is required";
-    if (!formData.email) errors.email = "Email is required";
-    if (!formData.password) errors.password = "Password is required";
-    if (formData.password !== formData.confirmPassword) {
-      errors.confirmPassword = "Passwords do not match";
-    }
-    if (!formData.profilePicture)
-      errors.profilePicture = "Profile picture is required";
-    if (!formData.dob) errors.dob = "DOB is required";
-
-    return errors;
-  };
-
   return (
     <>
       <div className="registration-form-container">
         <h1>
           <img
-            src="src\img\new.png"
+            src="src/img/new.png"
             alt="Login-logo"
             style={{ width: 25, height: 25 }}
           />{" "}
@@ -218,7 +114,7 @@ export default function Register() {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>First Name</label>
+            <label htmlFor="first-name">First Name</label>
             <input
               type="text"
               name="firstName"
@@ -226,14 +122,14 @@ export default function Register() {
               placeholder="Enter First Name"
               value={formData.firstName}
               onChange={handleChange}
-            ></input>
+            />
             {errors.firstName && (
               <span className="error">{errors.firstName}</span>
             )}
           </div>
 
           <div className="form-group">
-            <label>Last Name</label>
+            <label htmlFor="last-name">Last Name</label>
             <input
               type="text"
               name="lastName"
@@ -241,14 +137,14 @@ export default function Register() {
               placeholder="Enter Last Name"
               value={formData.lastName}
               onChange={handleChange}
-            ></input>
+            />
             {errors.lastName && (
               <span className="error">{errors.lastName}</span>
             )}
           </div>
 
           <div className="form-group">
-            <label>Email</label>
+            <label htmlFor="email">Email</label>
             <input
               type="email"
               name="email"
@@ -256,24 +152,24 @@ export default function Register() {
               placeholder="Enter Email"
               value={formData.email}
               onChange={handleChange}
-            ></input>
+            />
             {errors.email && <span className="error">{errors.email}</span>}
           </div>
 
           <div className="form-group">
-            <label>D.O.B.</label>
+            <label htmlFor="dob">D.O.B.</label>
             <input
-              type="Date"
+              type="date"
               name="dob"
               id="dob"
               value={formData.dob}
               onChange={handleChange}
-            ></input>
+            />
             {errors.dob && <span className="error">{errors.dob}</span>}
           </div>
 
           <div className="form-group">
-            <label>Profile</label>
+            <label htmlFor="profilePicture">Profile</label>
             <input
               type="file"
               name="profilePicture"
@@ -281,14 +177,14 @@ export default function Register() {
               accept=".jpg, .png"
               value={formData.profilePicture}
               onChange={handleChange}
-            ></input>
+            />
             {errors.profilePicture && (
               <span className="error">{errors.profilePicture}</span>
             )}
           </div>
 
           <div className="form-group">
-            <label>Password</label>
+            <label htmlFor="password">Password</label>
             <input
               type="password"
               name="password"
@@ -296,14 +192,14 @@ export default function Register() {
               placeholder="Enter Password"
               value={formData.password}
               onChange={handleChange}
-            ></input>
+            />
             {errors.password && (
               <span className="error">{errors.password}</span>
             )}
           </div>
 
           <div className="form-group">
-            <label>Confirm-Password</label>
+            <label htmlFor="confirm-password">Confirm Password</label>
             <input
               type="password"
               name="confirmPassword"
@@ -311,7 +207,7 @@ export default function Register() {
               placeholder="Re-enter Password"
               value={formData.confirmPassword}
               onChange={handleChange}
-            ></input>
+            />
             {errors.confirmPassword && (
               <span className="error">{errors.confirmPassword}</span>
             )}
@@ -327,7 +223,6 @@ export default function Register() {
         </form>
       </div>
       <ToastContainer position="top-right" autoClose={3000} />
-\
     </>
   );
 }

@@ -1,7 +1,10 @@
-import { Link } from "react-router-dom";
-import { validateString } from "../register/Register";
 import "./Login.css";
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import "react-toastify/dist/ReactToastify.css";
+import { ToastContainer, toast } from "react-toastify";
+import { validateString } from "../validation/validation-fn";
+
 export default function Login() {
   const [formData, setFormData] = useState({
     email: "",
@@ -13,52 +16,39 @@ export default function Login() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-
-    let errorMessages = { ...errors };
-
-    try {
-      if (name === "email") {
-        validateString(value).emailValidation().minLength(8);
-      }
-
-      if (name === "password") {
-        validateString(value).minLength(8).maxLength(20);
-      }
-
-      delete errorMessages[name]; //clear errors
-      
-    } catch (error) {
-      errorMessages[name] = error.message;
-    }
-
-    setErrors(errorMessages);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const validationErrors = validateForm();
+    const validationErrors = {};
+
+    try {
+      validateString(formData.email).emailValidation().minLength(8);
+    } catch (error) {
+      validationErrors.email = error.message;
+    }
+
+    try {
+      validateString(formData.password).passwordValidation().minLength(8).maxLength(20);
+    } catch (error) {
+      validationErrors.password = error.message;
+    }
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      toast.error("Please fix the highlighted errors.");
       return;
     }
 
-    console.log("Login successfully:", formData);
+    toast.success("Login successful!");
 
     setFormData({
       email: "",
       password: "",
     });
+
     setErrors({});
-  };
-
-  const validateForm = () => {
-    const errors = {};
-
-    if (!formData.email) errors.email = "Email is required";
-    if (!formData.password) errors.password = "Password is required";
-
-    return errors;
   };
 
   return (
@@ -66,7 +56,7 @@ export default function Login() {
       <div className="login-form-container">
         <h1>
           <img
-            src="src\img\logo.png"
+            src="src/img/logo.png"
             alt="Login-logo"
             style={{ width: 25, height: 25 }}
           />{" "}
@@ -75,7 +65,7 @@ export default function Login() {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Email</label>
+            <label htmlFor="email">Email</label>
             <input
               type="email"
               name="email"
@@ -83,11 +73,12 @@ export default function Login() {
               placeholder="Enter Email"
               value={formData.email}
               onChange={handleChange}
-            ></input>
-            {errors.email && <span>{errors.email}</span>}
+            />
+            {errors.email && <span className="error">{errors.email}</span>}
           </div>
+
           <div className="form-group">
-            <label>Password</label>
+            <label htmlFor="password">Password</label>
             <input
               type="password"
               name="password"
@@ -95,11 +86,12 @@ export default function Login() {
               placeholder="Enter Password"
               value={formData.password}
               onChange={handleChange}
-            ></input>
-            {errors.password && <span>{errors.password}</span>}
+            />
+            {errors.password && <span className="error">{errors.password}</span>}
           </div>
 
           <button type="submit">Login</button>
+
           <div className="form-footer">
             <span className="new-user">
               <Link to="/registration">New User?</Link>
@@ -110,6 +102,7 @@ export default function Login() {
           </div>
         </form>
       </div>
+      <ToastContainer position="top-right" autoClose={3000} />
     </>
   );
 }

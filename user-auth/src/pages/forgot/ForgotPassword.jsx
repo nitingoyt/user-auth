@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
-import './ForgotPassword.css';
-import { Link } from 'react-router-dom';
-import { validateString } from "../register/Register";
+import "./ForgotPassword.css";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import "react-toastify/dist/ReactToastify.css";
+import { ToastContainer, toast } from "react-toastify";
+import { validateString } from "../validation/validation-fn";
 
 export default function ForgotPassword() {
-
   const [formData, setFormData] = useState({ email: "" });
   const [errors, setErrors] = useState({});
 
@@ -17,10 +18,10 @@ export default function ForgotPassword() {
     try {
       if (name === "email") {
         validateString(value).emailValidation().minLength(8);
-        delete errorMessages[name]; 
+        delete errorMessages[name];
       }
     } catch (error) {
-      errorMessages[name] = error.message; 
+      errorMessages[name] = error.message;
     }
 
     setErrors(errorMessages);
@@ -32,24 +33,31 @@ export default function ForgotPassword() {
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
-      return; 
+      toast.error("Please fix the highlighted errors.");
+      return;
     }
 
     console.log("Reset code sent to:", formData.email);
+    toast.success("Reset code sent to your email!");
+
     setFormData({ email: "" });
     setErrors({});
   };
 
   const validateForm = () => {
-    const errors = {};
+    const validationErrors = {};
 
     if (!formData.email) {
-      errors.email = "Email is required";
-    } else if (errors.email) {
-      errors.email = "Please provide a valid email address.";
+      validationErrors.email = "Email is required.";
+    } else {
+      try {
+        validateString(formData.email).emailValidation().minLength(8);
+      } catch (error) {
+        validationErrors.email = error.message;
+      }
     }
 
-    return errors;
+    return validationErrors;
   };
 
   return (
@@ -66,7 +74,9 @@ export default function ForgotPassword() {
           </h2>
           <form onSubmit={handleSubmit}>
             <div className="input-group">
-              <label htmlFor="email" className="label">Email Address</label>
+              <label htmlFor="email" className="label">
+                Email Address
+              </label>
               <input
                 type="email"
                 id="email"
@@ -77,7 +87,9 @@ export default function ForgotPassword() {
               />
               {errors.email && <span className="error">{errors.email}</span>}
             </div>
-            <button type="submit" className="button">Send Reset Code</button>
+            <button type="submit" className="button">
+              Send Reset Code
+            </button>
             <div className="form-footer">
               <span className="already-user">
                 <Link to="/">Back to login!</Link>
@@ -86,6 +98,17 @@ export default function ForgotPassword() {
           </form>
         </div>
       </div>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
     </>
-  )
+  );
 }
